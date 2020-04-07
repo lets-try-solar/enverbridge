@@ -1,6 +1,6 @@
 # Enverbridge stats collector [Lets-try-Solar][Lts]
 
-get_solar.pl is a script to collect stats from the Envertec portal.
+get_solar.pl is a script to collect stats from the Envertec portal and will push these metrics into a InfluxDB.
 
 # Setup 
 

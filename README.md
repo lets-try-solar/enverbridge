@@ -1,4 +1,4 @@
-# Enverbridge stats collector
+# Enverbridge stats collector [Lets-try-Solar][Lts]
 
 | Lets-try-Solar | [Website][Lts] |
 

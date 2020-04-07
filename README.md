@@ -1,7 +1,5 @@
 # Enverbridge stats collector [Lets-try-Solar][Lts]
 
-| Lets-try-Solar | [Website][Lts] |
-
 get_solar.pl is a script to collect stats from the Envertec portal.
 
 # Setup 

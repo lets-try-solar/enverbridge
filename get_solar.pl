@@ -57,12 +57,9 @@ my %mapping = (
 if ($id eq "")
 {
 	get_stationID();
-	print "\n";
-	print "\{ \"id\" : \"$id\", \"dbcon\" : \"$dbcon\", \"database\" : \"$database\", \"influxtag\" : \"$influxtag\", \"username\" : \"$configdata->{'username'}\", \"password\" : \"$configdata->{'password'}\" \}";
 	open my $fh, ">", $configfile;
 	print $fh "\{ \"id\" : \"$id\", \"dbcon\" : \"$dbcon\", \"database\" : \"$database\", \"influxtag\" : \"$influxtag\", \"username\" : \"$configdata->{'username'}\", \"password\" : \"$configdata->{'password'}\" \}";
 	close $fh;
-	print "\n\n";
 }
 
 print "StationID: $id\n";

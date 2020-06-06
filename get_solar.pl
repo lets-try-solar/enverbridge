@@ -62,7 +62,7 @@ if ($id eq "")
 	close $fh;
 }
 
-print "StationID: $id\n";
+print "StationID: $id\n\n";
 
 # login to get cookie
 my $cookie = qx(curl --silent --cookie-jar /tmp/cookies -o /dev/null -X POST -H "Content-Type: application/json" -X "Content-Length: 1000" 'https://www.envertecportal.com/apiaccount/login?username=$username&pwd=$password');
@@ -70,8 +70,8 @@ my $cookie = qx(curl --silent --cookie-jar /tmp/cookies -o /dev/null -X POST -H 
 my $response = qx(curl --silent --cookie /tmp/cookies -X POST -d "" 'https://www.envertecportal.com/ApiStations/getStationInfo?stationId=$id');
 
 my $ref_hash = decode_json($response);
-
 my $value;
+print "Overall Status:\n\n";
 foreach my $item($ref_hash->{'Data'}){
 	delete $item->{'CreateYear'};
 	delete $item->{'CreateMonth'};
@@ -93,6 +93,33 @@ foreach my $item($ref_hash->{'Data'}){
 		}
 		print "$key: $value\n";
 		system "curl --output /dev/null --silent -i -XPOST 'http://$dbcon/write?db=$database' --data-binary '$key,tag=$influxtag value=$value'";
+	}
+}
+
+print "\n";
+
+$response = qx(curl --silent --cookie /tmp/cookies -X POST -d "" --data-raw 'page=1&perPage=20&orderBy=GATEWAYSN&whereCondition=%7B%22STATIONID%22%3A%22$id%22%7D' 'https://www.envertecportal.com/ApiInverters/QueryTerminalReal');
+$ref_hash = decode_json($response);
+my $ivcount =  $ref_hash->{'Data'}{'TotalCount'};
+for (my $i = 0;$i <= ($ivcount-1); $i++) {
+#	print Dumper $ref_hash->{'Data'}{'QueryResults'}[$i];
+	foreach my $item($ref_hash->{'Data'}{'QueryResults'}[$i]){
+		delete $item->{'ACCURRENCY'};
+		delete $item->{'SNID'};
+		delete $item->{'SITETIME'};
+		delete $item->{'STATIONID'};
+		delete $item->{'GATEWAYALIAS'};
+		my $sn = $item->{'SN'};
+		delete $item->{'SN'};
+		print "Inverter: $sn\n\n";
+		foreach my $key (sort keys %{$item}) {
+                	$item->{$key} =~ s/[^\d\.]//g;
+                	$value = encode('UTF-8',$item->{$key});
+			$key = lc $key;
+			print "$key: $value\n";
+			system "curl --output /dev/null --silent -i -XPOST 'http://$dbcon/write?db=$database' --data-binary '$key,tag=$influxtag,inverter=$sn value=$value'";
+		}
+		print "\n";
 	}
 }
 

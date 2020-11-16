@@ -17,6 +17,9 @@ cd enverbridge
   - id: keep it empty (the script will collect the stationID from the envertec portal automatically)
   - dbcon: IP of your InfluxDB host
   - database: InfluxDB database name
+  - mqttswitch: switch if mqtt should be used (y for yes and n for no)
+  - mqttbroker: MQTT broker IP
+  - mqttport: MQTT broker port
   - influxtag: Influx tag for the metrics
   - username: The email address you are using to login to the Envertec portal
   - password: The password which you use on the Envertec portal
@@ -32,6 +35,9 @@ vi envertech_config.json
     "dbcon" : "INFLUXDB:8086",
     "database" : "enverbridge",
     "influxtag" : "enverbridge",
+    "mqttswitch" : "y",
+    "mqttbroker" : "MQTT-BROKER-IP",
+    "mqttport" : "1883",
     "username" : "EMAIL",
     "password" : "PASSWORD"
 }

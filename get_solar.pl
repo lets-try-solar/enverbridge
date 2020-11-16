@@ -10,6 +10,7 @@ use JSON::Parse 'parse_json';
 use Encode qw(decode encode);
 use JSON;
 use File::Basename;
+use Net::MQTT::Simple;
 
 my $dirname = dirname(__FILE__);
 
@@ -40,8 +41,13 @@ my $id=$configdata->{'id'};				# ID from the Solarsystem
 my $dbcon=$configdata->{'dbcon'};			# InfluxDB connection details
 my $database=$configdata->{'database'};			# InfluxDB Database name
 my $influxtag=$configdata->{'influxtag'};		# InfluxDB tag
+my $mqttswitch=$configdata->{'mqttswitch'};             # MQTT Broker Switch on/off
+my $mqttbroker=$configdata->{'mqttbroker'};             # MQTT Broker IP
+my $mqttport=$configdata->{'mqttport'};                 # MQTT Broker Port
 my $username=quotemeta($configdata->{'username'});	# Envertech portal username
 my $password=quotemeta($configdata->{'password'});	# Envertech portal password
+
+my $mqtt;
 
 # mapping as the variable names have changed
 my %mapping = (
@@ -63,6 +69,9 @@ if ($id eq "")
 }
 
 print "StationID: $id\n\n";
+
+# connect to mqtt if selected
+connect_mqtt();
 
 # login to get cookie
 my $cookie = qx(curl --silent --cookie-jar /tmp/cookies -o /dev/null -X POST -H "Content-Type: application/json" -X "Content-Length: 1000" 'https://www.envertecportal.com/apiaccount/login?username=$username&pwd=$password');
@@ -93,6 +102,7 @@ foreach my $item($ref_hash->{'Data'}){
 		}
 		print "$key: $value\n";
 		system "curl --output /dev/null --silent -i -XPOST 'http://$dbcon/write?db=$database' --data-binary '$key,tag=$influxtag value=$value'";
+		send_mqtt($key,$value);
 	}
 }
 
@@ -118,8 +128,34 @@ for (my $i = 0;$i <= ($ivcount-1); $i++) {
 			$key = lc $key;
 			print "$key: $value\n";
 			system "curl --output /dev/null --silent -i -XPOST 'http://$dbcon/write?db=$database' --data-binary '$key,tag=$influxtag,inverter=$sn value=$value'";
+			send_mqtt($key,$value);
 		}
 		print "\n";
+	}
+}
+
+disconnect_mqtt();
+
+sub connect_mqtt {
+	if ( $mqttswitch eq "y" ) {
+		print "Connect to MQTT broker\n\n";
+		$mqtt = Net::MQTT::Simple->new("$mqttbroker:$mqttport");
+	} else {
+		print "MQTT not selected\n";
+	}
+}
+sub send_mqtt {
+	if ( $mqttswitch eq "y" ) {
+		my $mqtt_key = shift;
+		my $mqtt_value = shift;
+		$mqtt->publish("/homeassistant/solar/$mqtt_key", $mqtt_value);
+	}
+}
+
+sub disconnect_mqtt {
+	if ( $mqttswitch eq "y" ) {
+		print "Disconnect MQTT broker\n";
+		$mqtt->disconnect();
 	}
 }
 

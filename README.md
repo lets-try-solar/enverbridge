@@ -1,8 +1,8 @@
-# Enverbridge stats collector [Lets-try-Solar][Lts]
+ Enverbridge stats collector [Lets-try-Solar][Lts]
 
-get_solar.pl is a script to collect stats from the Envertec portal and will push these metrics into a InfluxDB.
+get_solar.pl is a script to collect stats from the Envertec portal and will push these metrics into a InfluxDB. Additionally the script can send the data to a MQTT broker and to a CCU2.
 
-# Setup 
+# Setup
 
 #### Clone the repository to your machine
 ```
@@ -20,6 +20,8 @@ cd enverbridge
   - mqttswitch: switch if mqtt should be used (y for yes and n for no)
   - mqttbroker: MQTT broker IP
   - mqttport: MQTT broker port
+  - ccu2_switch: switch if data should be send to a ccu2
+  - ccu2: ccu2 IP
   - influxtag: Influx tag for the metrics
   - username: The email address you are using to login to the Envertec portal
   - password: The password which you use on the Envertec portal
@@ -35,9 +37,11 @@ vi envertech_config.json
     "dbcon" : "INFLUXDB:8086",
     "database" : "enverbridge",
     "influxtag" : "enverbridge",
-    "mqttswitch" : "y",
+    "mqttswitch" : "n",
     "mqttbroker" : "MQTT-BROKER-IP",
     "mqttport" : "1883",
+    "ccu2_switch" : "n",
+    "ccu2" : "CCU2-IP",
     "username" : "EMAIL",
     "password" : "PASSWORD"
 }
@@ -71,6 +75,47 @@ allpower: 0.00
 yearpower: 000.00
 ```
 
+### MQTT
+
+To enable MQTT you have to configure the following variables in the config file.
+
+  - mqttswitch: switch if mqtt should be used (y for yes and n for no)
+  - mqttbroker: MQTT broker IP
+  - mqttport: MQTT broker port
+
+### CCU2
+
+##### Requirements:
+
+XML-API CCU Addon https://github.com/hobbyquaker/XML-API
+
+To send data to a CCU you need to configure the following variables in the config file.
+
+  - ccu2_switch: switch if data should be send to a ccu2
+  - ccu2: ccu2 IP
+ 
+Additionally the following variables have to be created in the CCU.
+
+| Name | Description | Variable type | 
+| ------ | ------ | ------ |
+| allpower | Solar Gesamt Erzeugt | Number | 
+| capacity | Solar Capacity | Number | 
+| daypower | Solar daypower | Number | 
+| efficiency | Solar efficiency | Number |
+| etoday | Solar Etoday | Number | 
+| income | Solar income | Number | 
+| invtotal | Solar InvTotal | Number |
+| monthpower | Solar monthpower | Number | 
+| nowpower | Solar nowpower | Number | 
+| nowpower_ | Solar _nowpower | Number | 
+| peakpower | Solar Peakpower | Number | 
+| power | Solar power | Number | 
+| powerstr | Solar PowerStr | Number |
+| strpeakpower | Solar StrPeakPower | Number |
+| yearpower | Solar yearpower | Number | 
+
+The script will read the variables from the CCU and use the IDs to update the variables.
+
 ### Todos
 
  - Bundle script into Docker container
@@ -81,4 +126,3 @@ License
 MIT
 
    [Lts]: <https://www.lets-try-solar.de>
-

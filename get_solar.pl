@@ -11,6 +11,7 @@ use Encode qw(decode encode);
 use JSON;
 use File::Basename;
 use Net::MQTT::Simple;
+use XML::Hash;
 
 my $dirname = dirname(__FILE__);
 
@@ -44,10 +45,14 @@ my $influxtag=$configdata->{'influxtag'};		# InfluxDB tag
 my $mqttswitch=$configdata->{'mqttswitch'};             # MQTT Broker Switch on/off
 my $mqttbroker=$configdata->{'mqttbroker'};             # MQTT Broker IP
 my $mqttport=$configdata->{'mqttport'};                 # MQTT Broker Port
+my $hm_switch=$configdata->{'ccu2_switch'};		# CCU2 Switch
+my $hm_ip=$configdata->{'ccu2'};			# CCU2 IP
 my $username=quotemeta($configdata->{'username'});	# Envertech portal username
 my $password=quotemeta($configdata->{'password'});	# Envertech portal password
 
 my $mqtt;
+
+my $id_hash;
 
 # mapping as the variable names have changed
 my %mapping = (
@@ -72,6 +77,9 @@ print "StationID: $id\n\n";
 
 # connect to mqtt if selected
 connect_mqtt();
+
+# connect to ccu2 if selected
+get_ccu2_variables();
 
 # login to get cookie
 my $cookie = qx(curl --silent --cookie-jar /tmp/cookies -o /dev/null -X POST -H "Content-Type: application/json" -X "Content-Length: 1000" 'https://www.envertecportal.com/apiaccount/login?username=$username&pwd=$password');
@@ -103,6 +111,7 @@ foreach my $item($ref_hash->{'Data'}){
 		print "$key: $value\n";
 		system "curl --output /dev/null --silent -i -XPOST 'http://$dbcon/write?db=$database' --data-binary '$key,tag=$influxtag value=$value'";
 		send_mqtt($key,$value);
+		send_ccu2($key,$value,$id_hash);
 	}
 }
 
@@ -156,6 +165,39 @@ sub disconnect_mqtt {
 	if ( $mqttswitch eq "y" ) {
 		print "Disconnect MQTT broker\n";
 		$mqtt->disconnect();
+	}
+}
+
+sub get_ccu2_variables {
+	if ( $hm_switch eq "y" ) {
+		print "Send data to CCU2 enabled\n\n";
+		my $xml_converter = XML::Hash->new();
+		my $ho_xml = qx(curl --silent http://$hm_ip/config/xmlapi/sysvarlist.cgi);
+		my $xml_hash = $xml_converter->fromXMLStringtoHash($ho_xml);
+
+		#print Dumper $xml_hash;
+
+		my $name;
+		my $ise_id;
+		foreach my $item($xml_hash->{systemVariables}{systemVariable}){
+			#print Dumper $item;
+			foreach my $key (sort keys @{$item} ){
+				$name = $xml_hash->{systemVariables}{systemVariable}[$key]{name};
+				$ise_id = $xml_hash->{systemVariables}{systemVariable}[$key]{ise_id};
+				$id_hash->{$name} = $ise_id;
+			}
+		}
+		#print Dumper $id_hash;
+	}
+}
+
+sub send_ccu2 {
+	if ( $hm_switch eq "y" ) {
+		my $ccu2_key = shift;
+                my $ccu2_value = shift;
+		my $ccu2_id_hash = shift;
+		$ccu2_key = lc $ccu2_key;
+		system "curl --output /dev/null --silent 'http://$hm_ip/config/xmlapi/statechange.cgi?ise_id=$ccu2_id_hash->{$ccu2_key}&new_value=$ccu2_value'";
 	}
 }
 
